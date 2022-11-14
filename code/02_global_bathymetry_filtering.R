@@ -1,5 +1,5 @@
 ### This is a script that pulls individual .tif bathymetry files from https://www.nature.com/articles/s41597-022-01132-9
-### and calculates the area of the lake with depths "LESS THAN" 4 meters. A proxy for littoral area. 
+### and calculates the area of the lake with depths "LESS THAN" 3 meters. A proxy for littoral area following Harrison et al., 2021
 s = Sys.time()
 
 if (!require("pacman")) install.packages("pacman")
@@ -20,7 +20,7 @@ extract_littoral <- function(bathy_file){
       dplyr::rename(depth_m = paste0(bathy_file)) %>%
       dplyr::mutate(max_depth_m = max(depth_m, na.rm = T)) %>%
       dplyr::mutate(mean_depth_m = mean(depth_m, na.rm = T)) %>%
-      dplyr::filter(depth_m <= 4) %>%
+      dplyr::filter(depth_m <= 3) %>%
       dplyr::rename(mean_littoral_depth_m = depth_m) %>%
       dplyr::mutate(littoral_area_m2 = st_area(.)) %>% 
       sf::st_drop_geometry(.) %>% 
