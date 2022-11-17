@@ -1,0 +1,175 @@
+---
+title: "1_Exploratory_visualization"
+author: "Sarah Kinz, Abby Lewis, Mary Lofton (Team VTicks)"
+date: "2/16/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#knitr::opts_knit$set(root.dir = 'C:/Users/Mary Lofton/Documents/RProjects/VTicks') (I changed the code below so this is not necessary and can be run on everyone's computer without changing)
+#install.packages('pacman')
+pacman::p_load(tidyverse, lubridate)
+```
+
+## Visualize tick data
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+
+ticks <- read_csv("/Users/ryanmcclure/Documents/project-GLEE/code/JAGS_plug_n_play_example/0_Data_files/ticks-targets.csv.gz")
+
+sites <- unique(ticks$siteID)
+
+for (i in 1:length(sites)){
+  current_site <- subset(ticks, siteID == sites[i])
+  
+aa <- ggplot(data = current_site, aes(x = epiWeek, y = ambloyomma_americanum, color = plotID, fill = plotID))+
+  geom_point(size = 2)+
+  geom_line()+
+  ggtitle("A. americanum")+
+  facet_grid(vars(Year), scales = "free_x")+
+  theme_bw()
+print(aa)
+
+is <- ggplot(data = current_site, aes(x = epiWeek, y = ixodes_scapularis, color = plotID, fill = plotID))+
+  geom_point(size = 2)+
+  geom_line()+
+  ggtitle("I. scapularis")+
+  facet_grid(vars(Year), scales = "free_x")+
+  theme_bw()
+print(is)
+
+}
+```
+
+### Visualize what tick data is present/missing
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+sum = ticks%>%
+  mutate(month = month(as.Date(time)))%>%
+  group_by(plotID,Year,month)%>%
+  summarize(A = sum(!is.na(ambloyomma_americanum))/n(),
+            I = sum(!is.na(ambloyomma_americanum))/n())%>%
+  mutate(date = as.Date(paste0(Year,"-",month,"-01")))
+
+sum%>%
+  ggplot(aes(x = date, y = plotID, fill = A*100))+
+  geom_tile()+
+  scale_fill_viridis_c(na.value = "black")+
+  labs(fill = "Percent of Ambloyomma \namericanum data that is \nnot missing")+
+  theme_classic()
+
+sum%>%
+  ggplot(aes(x = date, y = plotID, fill = I*100))+
+  geom_tile()+
+  scale_fill_viridis_c(na.value = "black")+
+  labs(fill = "Percent of Ixodes \nscapularis data that \nis not missing")+
+  theme_classic()
+
+map = ticks%>%
+  group_by(siteID)%>%
+  summarize(lat = unique(decimalLatitude),
+            long = unique(decimalLongitude))
+```
+
+### Visualize site locations
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+MapData <- map_data("state")%>%
+  fortify()
+
+ggplot() +
+  geom_map(data = MapData, map = MapData,
+                  aes(map_id=region),
+                  fill = "white", colour = "#7f7f7f", size=0.5)+
+  geom_point(aes(x = long, y = lat, color = siteID),size = 3, data = map)+
+  theme_bw() + xlab(NULL) + ylab(NULL) +
+  theme(
+    plot.background = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.ticks = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank())+
+  guides(fill = F)
+```
+
+## Simulation of potential models for use in forecasting
+
+Sine-based dynamic model
+```{r}
+#timestep: weekly
+#spatial scale: one plot
+#focal variable: tick nymphs
+
+# Parameters
+n0 <- 0                                                     ## initial population size
+NT <- 54                                                    ## number of time steps to simulate (one year)
+time <- 1:NT                                                ## vector of times
+eggs_last_year = 1000                                       ## number of eggs laid last year (will ultimately be dependent 
+                                                            ## on number of adults last year and temperature)
+                                                            ## rate at which eggs become nymphs (will ultimately be dependent on temperature)
+eggs_to_nymphs = c(rep(0,13),sin(seq(0,pi, length.out = 12))/80,c(rep(0,28)))  # currently a sine function durring summer and zero otherwise
+                                                            ## rate at which nymphs become adults (will ultimately be dependent on temeprature)
+nymph_to_adult = c(rep(0,13),sin(seq(0,pi, length.out = 12))/50,c(rep(0,28))) 
+mortality = .25                                             ## mortality rate
+
+#Model
+tick_mod <- rep(n0, NT)    ## vector to store results
+for(t in 2:NT){
+  growth_nymph = eggs_last_year * eggs_to_nymphs[t-1]
+  growth_adult = tick_mod[t-1]*nymph_to_adult[t-1]
+  death = tick_mod[t-1]*mortality
+  tick_mod[t] = tick_mod[t - 1] + growth_nymph - death - growth_adult
+}
+
+#Plot results
+plot(time, tick_mod,lwd = 3, type = "l", bty = 'l', xlab = "Time", ylab = "Population Size")
+
+## this pattern is based on A. americanum 2016 data at KONZ
+plot(time, tick_mod,ylim = c(0,40),lwd = 3, type = "l", bty = 'l', xlab = "Time", ylab = "Population Size")
+dat = ticks%>%
+  filter(Year == 2016,
+         siteID == "KONZ")%>%
+  select(epiWeek,ambloyomma_americanum)
+points(dat$epiWeek,dat$ambloyomma_americanum)
+```
+
+
+## Visualize environmental covariate data provided with target data
+Relative humidity is relevant because if conditions are too dry, tick eggs become dessicated.
+Temperature affects adult activity and therefore egg-laying rates.
+
+```{r , echo=FALSE, message = FALSE, warning = FALSE}
+core_sites <- c("KONZ","ORNL","SCBI","TALL")
+
+env_vars <- c("RHMin_precent","RHMax_precent","airTempMin_degC","airTempMax_degC")
+
+for (i in 1:length(core_sites)){
+  current_site <- subset(ticks, siteID == core_sites[i])
+  
+  for(j in 1:length(env_vars)){
+  
+plot_var <- ggplot(data = current_site, aes_string(x = "epiWeek", y = env_vars[j], color = 'plotID', fill = 'plotID'))+
+  geom_point(size = 2)+
+  geom_line()+
+  ggtitle(env_vars[j])+
+  facet_grid(vars(Year), scales = "free_x")+
+  theme_bw()
+print(plot_var)
+
+}
+}
+
+unique(ticks$nlcdClass)
+```
+
+## Plan for additional environmental covariate data
+Because many sites are missing environmental covariate data altogether or have gaps in data collection, we are planning to augment the provided relative humidity and air temperature covariate data using the North American Land Data Assimilation System Phase 2 (NLDAS-2) forcing dataset (https://ldas.gsfc.nasa.gov/nldas) and/or the Parameter-elevation Relationships on Independent Slopes Model (PRISM) model (http://www.prism.oregonstate.edu). NLDAS-2 can provide hourly-resolution climatic data, including relative humidity, temperature, and precipitation, at a 1/8 degree grid scale, and PRISM can provide daily temperature and precipitation at a 4-km resolution across all of our sites (to the best of our knowledge). We will use Pearson's correlations between NLDAS-2 and PRISM data and the already-provided local relative humidity and temperature data to determine which data product is more representative of local conditions across our study sites. We have (some) previous experience working with both the NLDAS-2 and PRISM data products.
+
+We are also interested in exploring precipitation as a possible covariate, following Klarenberg and Wisely (2019). We plan to use NEON precipitation data at the core sites where it is available (KONZ, ORNL, SCBI, TALL; NEON data product DP1.00006.001) and NLDAS-2 or PRISM data elsewhere.
+
+Finally, we are interested in exploring various vegetation indices as potential covariates, as vegetation structure can be important in facilitating tick bites and driving the wildlife host populations on which ticks depend. The target data provides NLCD land cover class, but we think some measure of woody debris or vegetation structure might be important in determining tick abundance. It is unlikely that we will be able to generate forecasts for vegetation indices; however, we could potentially incorporate them as fixed effects that are continuous through time or generate very simple driver forecasts (e.g., random walk or climatology-based forecasts). We are considering the following NEON data products to incorporate vegetation structure: Woody plant vegetation structure (DP1.10098.001), Herbaceous clip harvest (DP1.10023.001), and Non-herbaceous perennial vegetation structure (DP1.10045.001).
+
+We acknowledge that certain wildlife populations (birds, mice, deer) are essential to tick life cycles and that tick abundance is highly intertwined with these populations. Unfortunately, the difficulty of generating forecasts for these wildlife populations as driver variables may preclude their incorporation into our tick forecasting model.
+
+References:
+Klarenberg, G. & Wisely, S. M. Evaluation of NEON data to model spatio-temporal tick dynamics in Florida. Insects 10, (2019).
