@@ -1,0 +1,27 @@
+
+model {  
+   
+   #priors===================================================
+   
+   theta ~ dunif(0,100000)
+   phi ~ dunif(0,100000)
+   sd.pro ~ dunif(0, 1000)
+   
+   #end priors===============================================
+   
+   for(i in 1:N) {
+      
+      #process model=============================================
+      
+      tau.pro[i] <- 1/((sd.pro)*(sd.pro))
+      predX[i] <- theta * (phi^(temp[i]-20))
+      X[i] ~ dnorm(predX[i],tau.pro[i])
+      
+      #end of process model======================================
+      
+      #data model================================================
+      
+      Y[i] ~ dnorm(X[i], tau.obs[i]) # Observation variation
+            #end of data model=========================================
+   }
+  }

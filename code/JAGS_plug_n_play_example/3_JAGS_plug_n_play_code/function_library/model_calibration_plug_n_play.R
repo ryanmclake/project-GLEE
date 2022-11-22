@@ -12,13 +12,18 @@ jags_plug_ins <- function(model_name, cal_data){
 #variable.names.out are all variables you would like to monitor in the jags run
 #init are a range of initial conditions for parameters in each of 3 chains
 
-#ZIP
-  data.ZIP <- list(y=cal_data$y, YR = cal_data$YR, N=cal_data$N, x = cal_data$x, week_mean_x = cal_data$week_mean_x,
-                   N.pred.pois = cal_data$N.pred.pois, N.pred.bern = cal_data$N.pred.bern)
-  variable.names.ZIP <- c("beta.pois", "beta.bern","tau_x")
-  variable.namesout.ZIP <- c("beta.pois", "beta.bern","tau_x","m")
-  init.ZIP <- list(list(beta.pois = c(0.5,0.5,0.5),beta.bern = c(0.5,0.5),tau_x = 0.01), list(beta.pois = c(0,0,0),beta.bern = c(0,0), tau_x = 0.1), list(beta.pois = c(-0.5,-0.5,-0.5),beta.bern = c(-0.5,-0.5), tau_x = 1))
-  params.ZIP <- c("beta.pois[1]","beta.pois[2]","beta.pois[3]", "beta.bern[1]","beta.bern[2]","tau_x")
+#GRESBASEMODEL
+  data.GRESBASEMODEL <- list(y=cal_data$y, 
+                             N=cal_data$N, 
+                             Littoral_frac = cal_data$x[,1],
+                             Cum_radiance = cal_data$x[,2],
+                             x = cal_data$x, 
+                             N.pred.beta = cal_data$N.pred.beta,
+                             `ebullition[1]` = 4.46)
+  variable.names.GRESBASEMODEL <- c("beta","tau_obs", "tau_proc")
+  variable.namesout.GRESBASEMODEL <- c("beta","tau_obs", "tau_proc")
+  init.GRESBASEMODEL <- list(beta = c(-0.98574,1.0075,0.04928),tau_obs = 0.01, tau_proc = 0.01)
+  params.GRESBASEMODEL <- c("beta[1]","beta[2]","beta[3]","tau_obs", "tau_proc")
 
   data = eval(parse(text = paste0('data.', model_name)))
   variable.names = eval(parse(text = paste0('variable.names.', model_name)))

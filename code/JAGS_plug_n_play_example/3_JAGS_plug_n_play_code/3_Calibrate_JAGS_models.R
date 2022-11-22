@@ -45,33 +45,28 @@ my_directory <- "~Desktop/EF 2021/VTicks"
 write_plots <- TRUE
 
 #make vector of model names for for-loop
-my_models <- c("ZIP")
+my_models <- c("GRESBASEMODEL")
 length(my_models)
 
 ########################CALIBRATE MODELS##############################################
 
-for (i in 1:length(my_models)){
+#for (i in 1:length(my_models)){
 
 #1) Source helper functions ---------------------------------------------------------
-  source('3_JAGS_plug_n_play_code/function_library/model_calibration_plug_n_play.R')
-  source('3_JAGS_plug_n_play_code/function_library/model_calibration_get_data.R')
-  source('3_JAGS_plug_n_play_code/function_library/model_calibration_plots.R')
+  source('/Users/ryanmcclure/Documents/project-GLEE/code/JAGS_plug_n_play_example/3_JAGS_plug_n_play_code/function_library/model_calibration_plug_n_play.R')
+  source('/Users/ryanmcclure/Documents/project-GLEE/code/JAGS_plug_n_play_example/3_JAGS_plug_n_play_code/function_library/model_calibration_get_data.R')
+  source('/Users/ryanmcclure/Documents/project-GLEE/code/JAGS_plug_n_play_example/3_JAGS_plug_n_play_code/function_library/model_calibration_plots.R')
 
 #2) Model options => pick model -----------------------------------------------------
 
 model_name = my_models[i] # options are found in 2_JAGS_model_templates
-model=paste0("2_JAGS_model_templates/",model_name, '.R') #Do not edit
+model=paste0("/Users/ryanmcclure/Documents/project-GLEE/code/JAGS_plug_n_play_example/2_JAGS_model_templates/",model_name, '.R') #Do not edit
 
 
 #3) Read in data for model ------------------------------------------------------------------------------------------------------------
 
 #see 3 for this function
-cal_data <- get_calibration_data(model_name = model_name,
-                                 site = "ORNL",
-                                 plot = "ORNL_040",
-                                 species = "A. americanum",
-                                 cal_years = c(2016:2018),
-                                 epi_weeks = c(13:37))
+cal_data <- get_calibration_data(model_name = model_name)
 
 
 #4) JAGS Plug-Ins => initial conditions, priors, data, etc. --------------------------------------------------------------------------------------

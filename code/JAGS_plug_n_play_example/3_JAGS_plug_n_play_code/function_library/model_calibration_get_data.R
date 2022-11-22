@@ -6,62 +6,40 @@
 #install.packages('pacman')
 
 #load packages
-pacman::p_load(tidyverse,zoo)
+pacman::p_load(tidyverse,zoo,rstatix)
 
-get_calibration_data <- function(model_name, site, plot, species, cal_years, epi_weeks){
+get_calibration_data <- function(model_name){
 
-  # read in tick data
-  ticks <- read_csv("./0_Data_files/ticks-targets.csv.gz")
-
-  # subset to site, plot, and correct time period
-  ticks_calibration <- ticks %>%
-    filter(siteID == site,
-           plotID == plot,
-           Year %in% cal_years,
-           epiWeek %in% epi_weeks)
-
+  # read in g-res_data
+  g_res <- read_csv("./data/observed/g_res_data.csv") %>%
+    filter(!is.na(bubble_correct_mgC_m2_d)) %>%
+    select(area_km2, Longitude, Latitude, effective_temp_ch4, Littoral_frac, z_max, z_mean, Cum_radiance, bubble_correct_mgC_m2_d) %>%
+    na.omit(.) %>%
+    filter(bubble_correct_mgC_m2_d < 245) %>%
+    mutate(sd = ifelse(bubble_correct_mgC_m2_d<100, 2.5, 0.1))
+  
   # subset according to species
-  if(species == "A. americanum"){
-  y.obs <- ticks_calibration %>%
-    select(Year, epiWeek, ambloyomma_americanum) %>%
-    pivot_wider(names_from = epiWeek, values_from = ambloyomma_americanum) %>%
-    select(-Year)
-  y <- as.matrix(y.obs)
-  }
-
-  if(species == "I. scapularis"){
-  y.obs <- ticks_calibration %>%
-    select(Year, epiWeek, ixodes_scapularis) %>%
-    pivot_wider(names_from = epiWeek, values_from = ixodes_scapularis)%>%
-    select(-Year)
-  y <- as.matrix(y.obs)
-  }
-
+    y.obs <- g_res %>%
+      select(bubble_correct_mgC_m2_d)
+    y <- as.matrix(y.obs)
+  
   #subset drivers according to model
   #THIS IS WHERE YOU ADD IN INFO FOR NEW MODELS
     #create a new if statement for your model name and write code
     #to pull the correct driver data
-  if(model_name == "ZIP"){
-    x.obs <- ticks_calibration %>%
-      select(Year, epiWeek, airTempMin_degC) %>%
-      pivot_wider(names_from = epiWeek, values_from = airTempMin_degC) %>%
-      select(-Year)
+  if(model_name == "GRESBASEMODEL"){
+    x.obs <- g_res %>%
+      select(Littoral_frac, Cum_radiance)
     x <- as.matrix(x.obs)
 
-    week_mean_x_temp <- colMeans(x, na.rm = TRUE)
-    week_mean_x <- zoo::na.approx(week_mean_x_temp)
-
     #number of betas
-    N.pred.pois = 3
-    N.pred.bern = 2
+    N.pred.beta = 3
   }
 
   #set counters
-  YR = length(cal_years)
-  N = length(epi_weeks)
+  N = length((g_res$bubble_correct_mgC_m2_d))
 
-  return(list(YR = YR, N = N, y = y, x = x, week_mean_x = week_mean_x, N.pred.pois = N.pred.pois, N.pred.bern = N.pred.bern))
-
+  return(list(N = N, y = y, x = x, N.pred.beta = N.pred.beta))
 }
 
 
