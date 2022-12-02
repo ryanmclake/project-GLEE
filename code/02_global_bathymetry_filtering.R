@@ -5,11 +5,11 @@
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(tidyverse, sf, stars, units, utils, doParallel)
 
-bathy <- c(list.files('/Users/ryanmcclure/Desktop/top_100', pattern='.tif', recursive = T))
+bathy <- c(list.files("/Volumes/SeagateBackupPlusDrive/Bathymetry_Rasters/", pattern='.tif', recursive = T))
 
 extract_littoral <- function(bathy){
 
-  whole <- stars::read_stars(paste0("/Users/ryanmcclure/Desktop/top_100/",bathy,"")) %>%
+  whole <- stars::read_stars(paste0("/Volumes/SeagateBackupPlusDrive/Bathymetry_Rasters/",bathy,"")) %>%
     sf::st_as_sf(.) %>% 
     dplyr::rename_at(1, ~'depth_m') %>%
     dplyr::mutate(lake_area_m2 = st_area(geometry)) %>%
@@ -24,7 +24,7 @@ extract_littoral <- function(bathy){
       dplyr::rename_at(1, ~'depth_m') %>%
       dplyr::mutate(max_depth_m = max(depth_m, na.rm = T)) %>%
       dplyr::mutate(mean_depth_m = mean(depth_m, na.rm = T)) %>%
-      dplyr::filter(depth_m <= 3) %>%
+      dplyr::filter(depth_m <= 8.5) %>%
       dplyr::mutate(littoral_area_m2 = st_area(geometry)) %>% 
       sf::st_drop_geometry(.) %>% 
       units::drop_units(.) %>%
@@ -37,10 +37,10 @@ extract_littoral <- function(bathy){
       dplyr::left_join(., whole, by = "hylak_id") %>%
       dplyr::mutate(littoral_fraction = (littoral_area_km2/lake_area_km2)) %>%
       dplyr::select(hylak_id, max_depth_m, mean_depth_m, littoral_fraction) %>%
-      utils::write.table(., file = paste0("./data/littoral_area/global_littoral_area.csv"),
+      utils::write.table(., file = paste0("./data/littoral_area/global_littoral_area2.csv"),
                   append = T,
                   row.names = F,
-                  col.names = !file.exists("./data/littoral_area/global_littoral_area.csv"))
+                  col.names = !file.exists("./data/littoral_area/global_littoral_area2.csv"))
     
     return(unique(bathy))
   }
@@ -49,7 +49,7 @@ extract_littoral <- function(bathy){
 
 s = Sys.time()
 
-no_cores <- detectCores()
+no_cores <- detectCores()-1
 cl <- makeCluster(no_cores, type="FORK")
 registerDoParallel(cl)
 foreach(i=bathy) %dopar% extract_littoral(i)

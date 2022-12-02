@@ -8,11 +8,7 @@
 
 # Tg CO2 /yr  equivalent calculator (16.55*(16/12*34*365/1000))
 
-g_res <- read_csv("./data/observed/g_res_data.csv") %>%
-  filter(!is.na(bubble_correct_mgC_m2_d)) %>%
-  select(Longitude, Latitude, effective_temp_ch4, Littoral_frac, z_max, z_mean, Cum_radiance, bubble_correct_mgC_m2_d) %>%
-  na.omit(.) %>%
-  filter(bubble_correct_mgC_m2_d < 245)
+
 
 # G-Res Models
 ebullition_base_model <- function(per_littoral_area, I_cumu){

@@ -2,5 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
-data/hylak_ids/
-data/observed/
+project-GLEE.Rproj
+data/.DS_Store
+code/.DS_Store
+.DS_Store

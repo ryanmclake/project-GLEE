@@ -1,8 +1,8 @@
 
 model {  
-   mu ~ dnorm(0,1e-3)  # intercet
-   beta ~ dnorm(0,1e-3) # cat temp paramter
-   phi ~ dnorm(0,1e-3) 
+   mu ~ dnorm(0,100)  # intercet
+   beta ~ dnorm(0,100) # cat temp paramter
+   phi ~ dnorm(0,100) 
    sd.pro ~ dunif(0, 1000)
    tau.pro <-  pow(sd.pro, -2)
    
