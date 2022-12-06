@@ -3,9 +3,9 @@
 model = ("g_res_base.txt")
 jagsscript = cat("
 model {  
-   mu ~ dnorm(0,100)  # intercet
-   beta ~ dnorm(0,100) # cat temp paramter
-   phi ~ dnorm(0,100) 
+   mu ~ dnorm(0,1000)  # intercet
+   beta ~ dnorm(0,1000) # cat temp paramter
+   phi ~ dnorm(0,1000) 
    sd.pro ~ dunif(0, 1000)
    tau.pro <-  pow(sd.pro, -2)
    
@@ -92,8 +92,4 @@ model_validate = as.data.frame(do.call(rbind, out)) %>%
   arrange(row_names) %>%
   left_join(., g_res_ebu, by = "row_names")
 
-mean <- as.data.frame(rowMeans(model_validate))
-
-bind_cols(data_val$eb_flux, mean$`rowMeans(model_validate)`) %>%
-  summarize(rmse = rmse(`...1`, `...2`))
 

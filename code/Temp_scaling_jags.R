@@ -12,8 +12,8 @@ model {
    
    #priors===================================================
    
-   theta ~ dunif(0,1000)
-   phi ~ dunif(0,100)
+   theta ~ dunif(0,100000)
+   phi ~ dunif(0,1000)
    sd.pro ~ dunif(0, 1000)
    
    #end priors===============================================
@@ -36,10 +36,10 @@ model {
   }", file = model)
 
 
-jags.data = list(Y = data_cal$eb_flux, 
-                 tau.obs = 1/((data_cal$sd)) ^ 2,
-                 N = nrow(data_cal), 
-                 temp = data_cal$temp)
+jags.data = list(Y = nasa_ebu$eb_flux, 
+                 tau.obs = 1/((nasa_ebu$sd)) ^ 2,
+                 N = nrow(nasa_ebu), 
+                 temp = nasa_ebu$temp)
 
 nchain = 3
 chain_seeds <- c(200,800,1400)
@@ -64,9 +64,6 @@ eval_ebu  <- coda.samples(model = j.model,
 plot(eval_ebu)
 print(gelman.diag(eval_ebu))
 
-jags.out.mcmc <- as.mcmc.list(eval_ebu)
-
-
 parameter <- eval_ebu %>%
   spread_draws(sd.pro, phi, theta) %>%
   filter(.chain == 1) %>%
@@ -76,7 +73,7 @@ parameter <- eval_ebu %>%
 
 
 ebu_validation <- function(theta, phi, temp, Q){
-  est = (theta * phi ^ (temp - 20)) + rnorm(10000,0, sd = Q)
+  est = (theta * 1.3 ^ (temp - 20)) + rnorm(10000,0, sd = Q)
   return(est)
 }
 
@@ -84,9 +81,9 @@ parms <- sample_n(parameter, 10000, replace=TRUE)
 
 out <- list()
 
-for(s in 1:length(data_val$temp)){
+for(s in 1:length(nasa_ebu$temp)){
 
-  validation <- ebu_validation(temp = data_val$temp[s],
+  validation <- ebu_validation(temp = nasa_ebu$temp[s],
                                     phi = parms$phi,
                                     theta = parms$theta,
                                     Q = parms$sd.pro)
@@ -100,7 +97,7 @@ model_validate = as.data.frame(do.call(rbind, out)) %>%
   summarize(mean_eb_flux = mean(value),
             sd_eb_flux = SE(value)) %>%
   arrange(row_names) %>%
-  left_join(., data_val, by = "row_names")
+  left_join(., nasa_ebu, by = "row_names")
 
 mean <- as.data.frame(rowMeans(model_validate))
 
