@@ -12,8 +12,8 @@ model {
    
    #priors===================================================
    
-   theta ~ dunif(0,100000)
-   phi ~ dunif(0,1000)
+   theta ~ dunif(0,1000)
+   phi ~ dunif(0,100)
    sd.pro ~ dunif(0, 1000)
    
    #end priors===============================================
@@ -36,10 +36,10 @@ model {
   }", file = model)
 
 
-jags.data = list(Y = nasa_ebu$eb_flux, 
-                 tau.obs = 1/((nasa_ebu$sd)) ^ 2,
-                 N = nrow(nasa_ebu), 
-                 temp = nasa_ebu$temp)
+jags.data = list(Y = eb5$eb_flux, 
+                 tau.obs = 1/((eb5$sd)) ^ 2,
+                 N = nrow(eb5), 
+                 temp = eb5$temp)
 
 nchain = 3
 chain_seeds <- c(200,800,1400)
@@ -73,7 +73,7 @@ parameter <- eval_ebu %>%
 
 
 ebu_validation <- function(theta, phi, temp, Q){
-  est = (theta * 1.3 ^ (temp - 20)) + rnorm(10000,0, sd = Q)
+  est = (theta * phi ^ (temp - 20)) + rnorm(10000,0, sd = Q)
   return(est)
 }
 
@@ -81,12 +81,12 @@ parms <- sample_n(parameter, 10000, replace=TRUE)
 
 out <- list()
 
-for(s in 1:length(nasa_ebu$temp)){
+for(s in 1:length(eb5$temp)){
 
-  validation <- ebu_validation(temp = nasa_ebu$temp[s],
+  validation <- ebu_validation(temp = eb5$temp[s],
                                     phi = parms$phi,
                                     theta = parms$theta,
-                                    Q = parms$sd.pro)
+                                    Q = 0)
   out[[s]] <- validation
 }
 
@@ -95,9 +95,10 @@ model_validate = as.data.frame(do.call(rbind, out)) %>%
   pivot_longer(!row_names, names_to = "iteration", values_to = "value") %>%
   group_by(row_names) %>%
   summarize(mean_eb_flux = mean(value),
-            sd_eb_flux = SE(value)) %>%
+            sd_eb_flux = SE(value), 
+            var_flux = var(value)) %>%
   arrange(row_names) %>%
-  left_join(., nasa_ebu, by = "row_names")
+  left_join(., eb5, by = "row_names")
 
 mean <- as.data.frame(rowMeans(model_validate))
 
