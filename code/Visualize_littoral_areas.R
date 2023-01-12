@@ -14,8 +14,8 @@ lit_area_compare <- ggplot(littoral_area, aes(lit_frac_gres, littoral_fraction))
   geom_point(size = 0.05, aes(color = log(max_depth_m))) +
   geom_abline(intercept = 0, slope = 1, color = "red")+
   theme_classic()+
-  ylab("GloBathy Littoral Fraction")+
-  xlab("G-Res Littoral Fraction")
+  ylab("GloBathy Littoral Fraction (3m cutoff)")+
+  xlab("G-Res Littoral Fraction (3m cutoff)")
 
 
 

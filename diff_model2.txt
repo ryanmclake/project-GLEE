@@ -3,9 +3,8 @@ model {
    
    #priors===================================================
    
-   ebtwenty ~ dunif(0,1000)
-   theta ~ dunif(0,100)
-   sd.pro ~ dunif(0, 1000)
+   Ea ~ dunif(0,10000)
+   sd.pro ~ dunif(0, 10000)
    
    #end priors===============================================
    
@@ -14,7 +13,7 @@ model {
       #process model=============================================
       
       tau.pro[i] <- 1/((sd.pro)*(sd.pro))
-      predX[i] <- ebtwenty * (theta^(temp[i]-20))
+      predX[i] <- exp((-Ea/.0000862)*temp[i])
       X[i] ~ dnorm(predX[i],tau.pro[i])
       
       #end of process model======================================
